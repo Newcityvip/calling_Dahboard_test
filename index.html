@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Call Task Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <h1>Call Task Dashboard</h1>
+        <p class="subtext">Phase 1 - Admin & Staff Calling Dashboard</p>
+      </div>
+      <button id="logoutBtn" class="btn btn-outline hidden">Logout</button>
+    </header>
+
+    <main class="container">
+      <!-- LOGIN VIEW -->
+      <section id="loginView" class="card view active">
+        <h2>Login</h2>
+        <p class="muted">Enter your staff code to continue</p>
+
+        <div class="form-grid single">
+          <div class="field">
+            <label for="staffCode">Staff Code</label>
+            <input type="text" id="staffCode" placeholder="" autocomplete="off" />
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="loginBtn" class="btn btn-primary">Login</button>
+        </div>
+
+        <div id="loginMsg" class="message"></div>
+      </section>
+
+      <!-- ADMIN VIEW -->
+      <section id="adminView" class="view hidden">
+        <div class="grid two-col">
+          <div class="card">
+            <h2>Upload & Distribute</h2>
+            <p class="muted">Upload an Excel file and assign tasks equally to a selected team.</p>
+
+            <div class="form-grid">
+              <div class="field">
+                <label for="teamGroup">Team Group</label>
+                <select id="teamGroup">
+                  <option value="M1">M1 Brands</option>
+                  <option value="NEW_BRANDS">New Brands</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label for="brandName">Brand Name</label>
+                <input type="text" id="brandName" placeholder="Example: B3, B4, B5, J1" />
+              </div>
+
+              <div class="field">
+                <label for="excelFile">Excel File (.xlsx)</label>
+                <input type="file" id="excelFile" accept=".xlsx,.xls" />
+              </div>
+            </div>
+
+            <div class="actions">
+              <button id="processBtn" class="btn btn-primary">Process & Distribute</button>
+            </div>
+
+            <div id="uploadMsg" class="message"></div>
+          </div>
+
+          <div class="card">
+            <h2>Admin Info</h2>
+            <div class="stats-grid">
+              <div class="stat-box">
+                <span class="stat-label">Logged In As</span>
+                <strong id="adminName">-</strong>
+              </div>
+              <div class="stat-box">
+                <span class="stat-label">Role</span>
+                <strong>Admin</strong>
+              </div>
+              <div class="stat-box">
+                <span class="stat-label">System</span>
+                <strong>Phase 1</strong>
+              </div>
+              <div class="stat-box">
+                <span class="stat-label">Mode</span>
+                <strong>Combined Dashboard</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid two-col">
+          <div class="card">
+            <h2>Quick Export</h2>
+            <p class="muted">Download the assigned tasks report for KPI use.</p>
+            <div class="actions">
+              <button id="exportBtn" class="btn btn-success">Download Report CSV</button>
+            </div>
+            <div id="exportMsg" class="message"></div>
+          </div>
+
+          <div class="card">
+            <h2>Clear Wrong Batch</h2>
+            <p class="muted">If you distributed the wrong file to the wrong team, enter the Batch ID and clear it.</p>
+
+            <div class="form-grid single">
+              <div class="field">
+                <label for="clearBatchId">Batch ID</label>
+                <input type="text" id="clearBatchId" placeholder="Paste batch ID here" />
+              </div>
+            </div>
+
+            <div class="actions">
+              <button id="clearBatchBtn" class="btn btn-danger">Clear This Batch</button>
+            </div>
+
+            <div id="clearMsg" class="message"></div>
+          </div>
+        </div>
+
+        <div class="grid two-col">
+          <div class="card">
+            <h2>Upload Rules</h2>
+            <ul class="clean-list">
+              <li>Only these columns are used: Affiliate Username, Email, Registration Time, Phone Number</li>
+              <li>Duplicate removal is by Phone Number only</li>
+              <li>Duplicates are removed only inside the uploaded file</li>
+              <li>Records are distributed equally to selected group staff</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h2>Batch Tip</h2>
+            <p class="muted">After every successful upload, the Batch ID will be shown. Keep that ID if you ever need to reverse that upload.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- STAFF VIEW -->
+      <section id="staffView" class="view hidden">
+        <div class="card">
+          <div class="staff-header">
+            <div>
+              <h2 id="staffTitle">My Assigned Tasks</h2>
+              <p class="muted">Update call status and remarks after each call.</p>
+            </div>
+
+            <div class="staff-summary">
+              <span class="pill">Pending Queue</span>
+              <strong id="taskCount">0 Tasks</strong>
+            </div>
+          </div>
+
+          <div class="toolbar">
+            <input type="text" id="searchInput" placeholder="Search by username, email, phone, brand..." />
+            <select id="statusFilter">
+              <option value="">All Status</option>
+              <option value="Pending">Pending</option>
+              <option value="Completed">Completed</option>
+              <option value="No Answer">No Answer</option>
+              <option value="Not Reachable">Not Reachable</option>
+              <option value="Call Back Later">Call Back Later</option>
+              <option value="Wrong Number">Wrong Number</option>
+              <option value="Interested">Interested</option>
+              <option value="Not Interested">Not Interested</option>
+            </select>
+            <button id="refreshTasksBtn" class="btn btn-outline">Refresh</button>
+          </div>
+
+          <div class="table-wrap">
+            <table id="taskTable">
+              <thead>
+                <tr>
+                  <th>Brand</th>
+                  <th>Affiliate Username</th>
+                  <th>Email</th>
+                  <th>Registration Time</th>
+                  <th>Phone Number</th>
+                  <th>Call Status</th>
+                  <th>Remark / Note</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="taskTableBody">
+                <tr>
+                  <td colspan="8" class="empty-cell">No tasks loaded yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div id="staffMsg" class="message"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
