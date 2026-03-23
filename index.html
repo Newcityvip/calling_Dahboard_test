@@ -93,6 +93,44 @@
           </div>
         </div>
 
+        <!-- NEW LIVE REPORT -->
+        <div class="card">
+          <div class="report-head">
+            <div>
+              <h2>Live Calling Report</h2>
+              <p class="muted">Overall live progress across all assigned calls.</p>
+            </div>
+            <button id="refreshSummaryBtn" class="btn btn-outline">Refresh Report</button>
+          </div>
+
+          <div class="summary-grid" id="summaryGrid">
+            <div class="summary-box"><span>Total</span><strong id="sumTotal">0</strong></div>
+            <div class="summary-box"><span>Pending</span><strong id="sumPending">0</strong></div>
+            <div class="summary-box"><span>Completed</span><strong id="sumCompleted">0</strong></div>
+            <div class="summary-box"><span>Updated</span><strong id="sumUpdated">0</strong></div>
+            <div class="summary-box"><span>No Answer</span><strong id="sumNoAnswer">0</strong></div>
+            <div class="summary-box"><span>Not Reachable</span><strong id="sumNotReachable">0</strong></div>
+            <div class="summary-box"><span>Call Back Later</span><strong id="sumCallBackLater">0</strong></div>
+            <div class="summary-box"><span>Wrong Number</span><strong id="sumWrongNumber">0</strong></div>
+            <div class="summary-box"><span>Interested</span><strong id="sumInterested">0</strong></div>
+            <div class="summary-box"><span>Not Interested</span><strong id="sumNotInterested">0</strong></div>
+          </div>
+
+          <div class="grid two-col chart-grid">
+            <div class="card inner-card">
+              <h3>Status Chart</h3>
+              <canvas id="statusChart"></canvas>
+            </div>
+
+            <div class="card inner-card">
+              <h3>Staff Progress</h3>
+              <canvas id="staffChart"></canvas>
+            </div>
+          </div>
+
+          <div id="summaryMsg" class="message"></div>
+        </div>
+
         <div class="grid two-col">
           <div class="card">
             <h2>Quick Export</h2>
@@ -200,6 +238,7 @@
   </div>
 
   <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
