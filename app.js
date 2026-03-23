@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbz_xO3uPOIfGhbA1Rs4Vk5hnnJZb_DApl0haVJYLGxeZSnqyoO301PohtRk-Iuq1HOHtg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyBdtI6VnZmsLfo9KT0QfmEuMWREhlKkvZJXl8vyVdXhqxcWqtEUgLKV8SOrev1s3xgXA/exec";
 
 const STATUS_OPTIONS = [
   "Pending",
@@ -13,6 +13,8 @@ const STATUS_OPTIONS = [
 
 let currentUser = null;
 let currentTasks = [];
+let statusChart = null;
+let staffChart = null;
 
 const loginView = document.getElementById("loginView");
 const adminView = document.getElementById("adminView");
@@ -37,6 +39,20 @@ const clearBatchBtn = document.getElementById("clearBatchBtn");
 const clearBatchIdInput = document.getElementById("clearBatchId");
 const clearMsg = document.getElementById("clearMsg");
 
+const refreshSummaryBtn = document.getElementById("refreshSummaryBtn");
+const summaryMsg = document.getElementById("summaryMsg");
+
+const sumTotal = document.getElementById("sumTotal");
+const sumPending = document.getElementById("sumPending");
+const sumCompleted = document.getElementById("sumCompleted");
+const sumUpdated = document.getElementById("sumUpdated");
+const sumNoAnswer = document.getElementById("sumNoAnswer");
+const sumNotReachable = document.getElementById("sumNotReachable");
+const sumCallBackLater = document.getElementById("sumCallBackLater");
+const sumWrongNumber = document.getElementById("sumWrongNumber");
+const sumInterested = document.getElementById("sumInterested");
+const sumNotInterested = document.getElementById("sumNotInterested");
+
 const taskTableBody = document.getElementById("taskTableBody");
 const taskCount = document.getElementById("taskCount");
 const staffTitle = document.getElementById("staffTitle");
@@ -50,6 +66,7 @@ logoutBtn.addEventListener("click", logout);
 processBtn.addEventListener("click", handleUploadAndDistribute);
 exportBtn.addEventListener("click", handleExport);
 clearBatchBtn.addEventListener("click", handleClearBatch);
+refreshSummaryBtn.addEventListener("click", loadAdminSummary);
 refreshTasksBtn.addEventListener("click", loadStaffTasks);
 searchInput.addEventListener("input", renderTasks);
 statusFilter.addEventListener("change", renderTasks);
@@ -112,10 +129,20 @@ function logout() {
   setMessage(staffMsg, "", "info");
   setMessage(exportMsg, "", "info");
   setMessage(clearMsg, "", "info");
+  setMessage(summaryMsg, "", "info");
 
   clearBatchIdInput.value = "";
   excelFileInput.value = "";
   brandNameInput.value = "";
+
+  if (statusChart) {
+    statusChart.destroy();
+    statusChart = null;
+  }
+  if (staffChart) {
+    staffChart.destroy();
+    staffChart = null;
+  }
 }
 
 async function handleLogin() {
@@ -152,6 +179,7 @@ async function handleLogin() {
     if (res.role === "Admin") {
       adminName.textContent = `${res.name} (${code})`;
       showView(adminView);
+      await loadAdminSummary();
     } else {
       staffTitle.textContent = `${res.name} - My Assigned Tasks`;
       showView(staffView);
@@ -221,6 +249,7 @@ Batch ID: ${batchId}`,
       );
 
       excelFileInput.value = "";
+      await loadAdminSummary();
     } else {
       setMessage(uploadMsg, res.error || "Upload failed.", "error");
     }
@@ -265,6 +294,7 @@ Deleted from status_logs: ${res.deleted.status_logs}
 Deleted from upload_batches: ${res.deleted.upload_batches}`,
         "success"
       );
+      await loadAdminSummary();
     } else {
       setMessage(clearMsg, res.error || "Batch clear failed.", "error");
     }
@@ -274,6 +304,115 @@ Deleted from upload_batches: ${res.deleted.upload_batches}`,
   } finally {
     clearBatchBtn.disabled = false;
   }
+}
+
+async function loadAdminSummary() {
+  if (!currentUser || currentUser.role !== "Admin") return;
+
+  refreshSummaryBtn.disabled = true;
+  setMessage(summaryMsg, "Loading live report...", "info");
+
+  try {
+    const res = await postData({
+      action: "getAdminSummary",
+      code: currentUser.code
+    });
+
+    if (!res.success) {
+      setMessage(summaryMsg, res.error || "Failed to load summary.", "error");
+      return;
+    }
+
+    const s = res.summary || {};
+    sumTotal.textContent = s.total || 0;
+    sumPending.textContent = s.pending || 0;
+    sumCompleted.textContent = s.completed || 0;
+    sumUpdated.textContent = s.updated || 0;
+    sumNoAnswer.textContent = s.noAnswer || 0;
+    sumNotReachable.textContent = s.notReachable || 0;
+    sumCallBackLater.textContent = s.callBackLater || 0;
+    sumWrongNumber.textContent = s.wrongNumber || 0;
+    sumInterested.textContent = s.interested || 0;
+    sumNotInterested.textContent = s.notInterested || 0;
+
+    renderStatusChart(s);
+    renderStaffChart(res.staffBreakdown || {});
+    setMessage(summaryMsg, "Live report updated.", "success");
+  } catch (err) {
+    console.error("Summary error:", err);
+    setMessage(summaryMsg, `Failed to load summary: ${err.message}`, "error");
+  } finally {
+    refreshSummaryBtn.disabled = false;
+  }
+}
+
+function renderStatusChart(s) {
+  const ctx = document.getElementById("statusChart");
+
+  if (statusChart) statusChart.destroy();
+
+  statusChart = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels: [
+        "Pending",
+        "Completed",
+        "No Answer",
+        "Not Reachable",
+        "Call Back Later",
+        "Wrong Number",
+        "Interested",
+        "Not Interested"
+      ],
+      datasets: [{
+        data: [
+          s.pending || 0,
+          s.completed || 0,
+          s.noAnswer || 0,
+          s.notReachable || 0,
+          s.callBackLater || 0,
+          s.wrongNumber || 0,
+          s.interested || 0,
+          s.notInterested || 0
+        ]
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  });
+}
+
+function renderStaffChart(staffBreakdown) {
+  const ctx = document.getElementById("staffChart");
+
+  if (staffChart) staffChart.destroy();
+
+  const names = Object.keys(staffBreakdown);
+  const totals = names.map(name => staffBreakdown[name].total || 0);
+  const completed = names.map(name => staffBreakdown[name].completed || 0);
+
+  staffChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: names,
+      datasets: [
+        {
+          label: "Total",
+          data: totals
+        },
+        {
+          label: "Completed",
+          data: completed
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  });
 }
 
 function readExcelFile(file) {
