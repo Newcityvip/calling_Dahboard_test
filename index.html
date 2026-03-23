@@ -255,6 +255,35 @@
     </main>
   </div>
 
+      <!-- EMAIL DRAFT MODAL -->
+      <div id="emailModal" class="modal hidden">
+        <div class="modal-backdrop" id="emailModalBackdrop"></div>
+        <div class="modal-card">
+          <div class="modal-head">
+            <h3>Email Draft</h3>
+            <button id="closeEmailModalBtn" class="modal-close" type="button">×</button>
+          </div>
+          <div class="modal-meta">
+            <div><strong>Brand:</strong> <span id="emailBrandLabel">-</span></div>
+            <div><strong>To:</strong> <span id="emailToLabel">-</span></div>
+          </div>
+          <div class="field">
+            <label for="emailSubjectInput">Subject</label>
+            <input type="text" id="emailSubjectInput" placeholder="Enter email subject" />
+          </div>
+          <div class="field">
+            <label for="emailBodyInput">Message</label>
+            <textarea id="emailBodyInput" placeholder="Paste or write your email message here..."></textarea>
+          </div>
+          <div class="actions">
+            <button id="openDraftBtn" class="btn btn-primary" type="button">Open Draft</button>
+            <button id="cancelEmailModalBtn" class="btn btn-outline" type="button">Cancel</button>
+          </div>
+          <div id="emailDraftMsg" class="message"></div>
+        </div>
+      </div>
+
+
   <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="app.js"></script>
