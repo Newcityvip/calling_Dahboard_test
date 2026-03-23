@@ -421,13 +421,62 @@ th {
   color: var(--muted);
 }
 
+
+.field-full {
+  grid-column: 1 / -1;
+}
+
+.small-text {
+  font-size: 12px;
+  margin: 0 0 8px;
+}
+
+.staff-target-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-small {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.target-staff-list {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.target-staff-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.target-staff-item input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+
+.target-staff-empty {
+  color: var(--muted);
+  font-size: 14px;
+}
+
 @media (max-width: 980px) {
   .grid.two-col,
   .form-grid,
   .toolbar,
   .stats-grid,
   .summary-grid,
-  .percent-grid {
+  .percent-grid,
+  .target-staff-list {
     grid-template-columns: 1fr;
   }
 
