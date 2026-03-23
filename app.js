@@ -62,6 +62,19 @@ const searchInput = document.getElementById("searchInput");
 const statusFilter = document.getElementById("statusFilter");
 const refreshTasksBtn = document.getElementById("refreshTasksBtn");
 
+const emailModal = document.getElementById("emailModal");
+const emailModalBackdrop = document.getElementById("emailModalBackdrop");
+const closeEmailModalBtn = document.getElementById("closeEmailModalBtn");
+const cancelEmailModalBtn = document.getElementById("cancelEmailModalBtn");
+const openDraftBtn = document.getElementById("openDraftBtn");
+const emailBrandLabel = document.getElementById("emailBrandLabel");
+const emailToLabel = document.getElementById("emailToLabel");
+const emailSubjectInput = document.getElementById("emailSubjectInput");
+const emailBodyInput = document.getElementById("emailBodyInput");
+const emailDraftMsg = document.getElementById("emailDraftMsg");
+
+let activeEmailTask = null;
+
 loginBtn.addEventListener("click", handleLogin);
 logoutBtn.addEventListener("click", logout);
 processBtn.addEventListener("click", handleUploadAndDistribute);
@@ -71,6 +84,11 @@ refreshSummaryBtn.addEventListener("click", loadAdminSummary);
 refreshTasksBtn.addEventListener("click", loadStaffTasks);
 searchInput.addEventListener("input", renderTasks);
 statusFilter.addEventListener("change", renderTasks);
+
+openDraftBtn.addEventListener("click", handleOpenDraft);
+closeEmailModalBtn.addEventListener("click", closeEmailModal);
+cancelEmailModalBtn.addEventListener("click", closeEmailModal);
+emailModalBackdrop.addEventListener("click", closeEmailModal);
 
 staffCodeInput.addEventListener("keypress", function (e) {
   if (e.key === "Enter") handleLogin();
@@ -136,6 +154,8 @@ function logout() {
   excelFileInput.value = "";
   brandNameInput.value = "";
   staffPercentGrid.innerHTML = `<div class="empty-percent">No data yet.</div>`;
+  activeEmailTask = null;
+  closeEmailModal(true);
 
   if (statusChart) {
     statusChart.destroy();
@@ -519,12 +539,6 @@ async function loadStaffTasks() {
   if (!currentUser || currentUser.role === "Admin") return;
 
   refreshTasksBtn.disabled = true;
-
-  // 🔥 CLEAR UI FIRST (fix glitch)
-  currentTasks = [];
-  taskTableBody.innerHTML = `<tr><td colspan="8" class="empty-cell">Loading...</td></tr>`;
-  taskCount.textContent = "0 Tasks";
-
   setMessage(staffMsg, "Loading tasks...", "info");
 
   try {
@@ -533,21 +547,9 @@ async function loadStaffTasks() {
       code: currentUser.code
     });
 
-    // 🔥 SAFETY: ensure array
-    let data = Array.isArray(res.data) ? res.data : [];
-
-    // 🔥 IMPORTANT FIX: only latest batch
-    const latestBatch = data.length ? data[0].batchId : null;
-    if (latestBatch) {
-      data = data.filter(t => t.batchId === latestBatch);
-    }
-
-    currentTasks = data;
-
+    currentTasks = Array.isArray(res.data) ? res.data : [];
     renderTasks();
-
     setMessage(staffMsg, `Loaded ${currentTasks.length} tasks.`, "success");
-
   } catch (err) {
     console.error("Load tasks error:", err);
     setMessage(staffMsg, `Failed to load tasks: ${err.message}`, "error");
@@ -560,47 +562,58 @@ function renderTasks() {
   const q = searchInput.value.trim().toLowerCase();
   const filterStatus = statusFilter.value;
 
-  const pendingCount = currentTasks.filter((task) => String(task.status || "").trim() === "Pending").length;
-  taskCount.textContent = `${pendingCount} Tasks`;
-
   const filtered = currentTasks.filter((task) => {
-    return (
-      (!q ||
-        String(task.brandName || "").toLowerCase().includes(q) ||
-        String(task.username || "").toLowerCase().includes(q) ||
-        String(task.email || "").toLowerCase().includes(q) ||
-        String(task.phone || "").toLowerCase().includes(q)) &&
-      (!filterStatus || task.status === filterStatus)
-    );
+    const matchesSearch =
+      !q ||
+      String(task.brandName || "").toLowerCase().includes(q) ||
+      String(task.username || "").toLowerCase().includes(q) ||
+      String(task.email || "").toLowerCase().includes(q) ||
+      String(task.phone || "").toLowerCase().includes(q);
+
+    const matchesStatus = !filterStatus || task.status === filterStatus;
+
+    return matchesSearch && matchesStatus;
   });
 
+  taskCount.textContent = `${filtered.length} Tasks`;
+
   if (!filtered.length) {
-    taskTableBody.innerHTML = `<tr><td colspan="8" class="empty-cell">No tasks found.</td></tr>`;
+    taskTableBody.innerHTML = `<tr><td colspan="8" class="empty-cell">No matching tasks found.</td></tr>`;
     return;
   }
 
-  taskTableBody.innerHTML = filtered.map(task => `
-    <tr>
-      <td>${escapeHtml(task.brandName || "")}</td>
-      <td>${escapeHtml(task.username || "")}</td>
-      <td>${escapeHtml(task.email || "")}</td>
-      <td>${escapeHtml(task.regTime || "")}</td>
-      <td>${escapeHtml(task.phone || "")}</td>
-      <td>
-        <select class="status-select" data-task-id="${task.id}">
-          ${STATUS_OPTIONS.map(s =>
-            `<option ${task.status === s ? "selected" : ""}>${s}</option>`
-          ).join("")}
-        </select>
-      </td>
-      <td>
-        <textarea class="remark-input" data-task-id="${task.id}">${task.remark || ""}</textarea>
-      </td>
-      <td>
-        <button class="save-btn" onclick="saveTask('${task.id}', this)">Save</button>
-      </td>
-    </tr>
-  `).join("");
+  taskTableBody.innerHTML = filtered
+    .map((task) => {
+      const statusOptions = STATUS_OPTIONS.map(
+        (status) =>
+          `<option value="${escapeHtml(status)}" ${task.status === status ? "selected" : ""}>${escapeHtml(status)}</option>`
+      ).join("");
+
+      return `
+        <tr>
+          <td>${escapeHtml(task.brandName || "")}</td>
+          <td>${escapeHtml(task.username || "")}</td>
+          <td>${escapeHtml(task.email || "")}</td>
+          <td>${escapeHtml(task.regTime || "")}</td>
+          <td>${escapeHtml(task.phone || "")}</td>
+          <td>
+            <select class="status-select" data-task-id="${escapeHtml(task.id)}">
+              ${statusOptions}
+            </select>
+          </td>
+          <td>
+            <textarea class="remark-input" data-task-id="${escapeHtml(task.id)}" placeholder="Enter note...">${escapeHtml(task.remark || "")}</textarea>
+          </td>
+          <td>
+            <div class="action-stack">
+              <button class="save-btn" onclick="saveTask('${escapeJs(task.id)}', this)">Save</button>
+              <button class="draft-btn" onclick="openEmailModal('${escapeJs(task.id)}')" ${task.email ? "" : "disabled"}>Draft Email</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
 }
 
 async function saveTask(taskId, btn) {
@@ -641,6 +654,67 @@ async function saveTask(taskId, btn) {
   } finally {
     if (btn) btn.disabled = false;
   }
+}
+
+
+function openEmailModal(taskId) {
+  const task = currentTasks.find((t) => t.id === taskId);
+  if (!task) return;
+
+  if (!task.email) {
+    setMessage(staffMsg, "No email found for this user.", "error");
+    return;
+  }
+
+  activeEmailTask = task;
+  emailBrandLabel.textContent = task.brandName || "-";
+  emailToLabel.textContent = task.email || "-";
+  emailSubjectInput.value = `[${task.brandName || "Brand"}] Follow-up`;
+  emailBodyInput.value = "";
+  setMessage(emailDraftMsg, "", "info");
+  emailModal.classList.remove("hidden");
+  emailBodyInput.focus();
+}
+
+function closeEmailModal(silent = false) {
+  if (!silent && emailModal.classList.contains("hidden")) return;
+  emailModal.classList.add("hidden");
+  emailBrandLabel.textContent = "-";
+  emailToLabel.textContent = "-";
+  emailSubjectInput.value = "";
+  emailBodyInput.value = "";
+  activeEmailTask = null;
+  setMessage(emailDraftMsg, "", "info");
+}
+
+function handleOpenDraft() {
+  if (!activeEmailTask) {
+    setMessage(emailDraftMsg, "No task selected.", "error");
+    return;
+  }
+
+  const to = String(activeEmailTask.email || "").trim();
+  const subject = String(emailSubjectInput.value || "").trim();
+  const body = String(emailBodyInput.value || "").trim();
+
+  if (!to) {
+    setMessage(emailDraftMsg, "This row has no email address.", "error");
+    return;
+  }
+
+  if (!body) {
+    setMessage(emailDraftMsg, "Please paste or write the email message first.", "error");
+    return;
+  }
+
+  const gmailUrl =
+    "https://mail.google.com/mail/?view=cm&fs=1" +
+    `&to=${encodeURIComponent(to)}` +
+    `&su=${encodeURIComponent(subject)}` +
+    `&body=${encodeURIComponent(body)}`;
+
+  window.open(gmailUrl, "_blank", "noopener,noreferrer");
+  setMessage(emailDraftMsg, "Draft opened in a new Gmail window.", "success");
 }
 
 async function handleExport() {
