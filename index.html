@@ -54,7 +54,18 @@
 
               <div class="field">
                 <label for="brandName">Brand Name</label>
-                <input type="text" id="brandName" placeholder="Example: B3, B4, B5, J1" />
+                <input type="text" id="brandName" list="brandOptions" placeholder="Select or type brand name" />
+                <datalist id="brandOptions">
+                  <option value="B1"></option>
+                  <option value="B2"></option>
+                  <option value="B3"></option>
+                  <option value="B4"></option>
+                  <option value="B5"></option>
+                  <option value="M1"></option>
+                  <option value="M2"></option>
+                  <option value="J1"></option>
+                  <option value="T1"></option>
+                </datalist>
               </div>
 
               <div class="field">
@@ -93,7 +104,7 @@
           </div>
         </div>
 
-        <!-- NEW LIVE REPORT -->
+        <!-- LIVE REPORT -->
         <div class="card">
           <div class="report-head">
             <div>
@@ -125,6 +136,13 @@
             <div class="card inner-card">
               <h3>Staff Progress</h3>
               <canvas id="staffChart"></canvas>
+            </div>
+          </div>
+
+          <div class="card inner-card staff-progress-card">
+            <h3>Staff Completion Percentage</h3>
+            <div id="staffPercentGrid" class="percent-grid">
+              <div class="empty-percent">No data yet.</div>
             </div>
           </div>
 
