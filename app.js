@@ -41,6 +41,7 @@ const clearMsg = document.getElementById("clearMsg");
 
 const refreshSummaryBtn = document.getElementById("refreshSummaryBtn");
 const summaryMsg = document.getElementById("summaryMsg");
+const staffPercentGrid = document.getElementById("staffPercentGrid");
 
 const sumTotal = document.getElementById("sumTotal");
 const sumPending = document.getElementById("sumPending");
@@ -134,6 +135,7 @@ function logout() {
   clearBatchIdInput.value = "";
   excelFileInput.value = "";
   brandNameInput.value = "";
+  staffPercentGrid.innerHTML = `<div class="empty-percent">No data yet.</div>`;
 
   if (statusChart) {
     statusChart.destroy();
@@ -337,6 +339,7 @@ async function loadAdminSummary() {
 
     renderStatusChart(s);
     renderStaffChart(res.staffBreakdown || {});
+    renderStaffPercentCards(res.staffBreakdown || {});
     setMessage(summaryMsg, "Live report updated.", "success");
   } catch (err) {
     console.error("Summary error:", err);
@@ -413,6 +416,37 @@ function renderStaffChart(staffBreakdown) {
       maintainAspectRatio: false
     }
   });
+}
+
+function renderStaffPercentCards(staffBreakdown) {
+  const names = Object.keys(staffBreakdown);
+
+  if (!names.length) {
+    staffPercentGrid.innerHTML = `<div class="empty-percent">No data yet.</div>`;
+    return;
+  }
+
+  staffPercentGrid.innerHTML = names
+    .map((name) => {
+      const total = Number(staffBreakdown[name].total || 0);
+      const completed = Number(staffBreakdown[name].completed || 0);
+      const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+      return `
+        <div class="percent-card">
+          <div class="percent-name">${escapeHtml(name)}</div>
+          <div class="percent-meta">
+            <span>${completed} / ${total} completed</span>
+            <span>${percent}%</span>
+          </div>
+          <div class="percent-bar">
+            <div class="percent-fill" style="width: ${percent}%"></div>
+          </div>
+          <div class="percent-value">${percent}%</div>
+        </div>
+      `;
+    })
+    .join("");
 }
 
 function readExcelFile(file) {
