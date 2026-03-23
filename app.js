@@ -519,6 +519,12 @@ async function loadStaffTasks() {
   if (!currentUser || currentUser.role === "Admin") return;
 
   refreshTasksBtn.disabled = true;
+
+  // 🔥 CLEAR UI FIRST (fix glitch)
+  currentTasks = [];
+  taskTableBody.innerHTML = `<tr><td colspan="8" class="empty-cell">Loading...</td></tr>`;
+  taskCount.textContent = "0 Tasks";
+
   setMessage(staffMsg, "Loading tasks...", "info");
 
   try {
@@ -527,9 +533,21 @@ async function loadStaffTasks() {
       code: currentUser.code
     });
 
-    currentTasks = Array.isArray(res.data) ? res.data : [];
+    // 🔥 SAFETY: ensure array
+    let data = Array.isArray(res.data) ? res.data : [];
+
+    // 🔥 IMPORTANT FIX: only latest batch
+    const latestBatch = data.length ? data[0].batchId : null;
+    if (latestBatch) {
+      data = data.filter(t => t.batchId === latestBatch);
+    }
+
+    currentTasks = data;
+
     renderTasks();
+
     setMessage(staffMsg, `Loaded ${currentTasks.length} tasks.`, "success");
+
   } catch (err) {
     console.error("Load tasks error:", err);
     setMessage(staffMsg, `Failed to load tasks: ${err.message}`, "error");
@@ -543,54 +561,46 @@ function renderTasks() {
   const filterStatus = statusFilter.value;
 
   const filtered = currentTasks.filter((task) => {
-    const matchesSearch =
-      !q ||
-      String(task.brandName || "").toLowerCase().includes(q) ||
-      String(task.username || "").toLowerCase().includes(q) ||
-      String(task.email || "").toLowerCase().includes(q) ||
-      String(task.phone || "").toLowerCase().includes(q);
-
-    const matchesStatus = !filterStatus || task.status === filterStatus;
-
-    return matchesSearch && matchesStatus;
+    return (
+      (!q ||
+        String(task.brandName || "").toLowerCase().includes(q) ||
+        String(task.username || "").toLowerCase().includes(q) ||
+        String(task.email || "").toLowerCase().includes(q) ||
+        String(task.phone || "").toLowerCase().includes(q)) &&
+      (!filterStatus || task.status === filterStatus)
+    );
   });
 
+  // ✅ FIX: correct count (no fake big numbers)
   taskCount.textContent = `${filtered.length} Tasks`;
 
   if (!filtered.length) {
-    taskTableBody.innerHTML = `<tr><td colspan="8" class="empty-cell">No matching tasks found.</td></tr>`;
+    taskTableBody.innerHTML = `<tr><td colspan="8" class="empty-cell">No tasks found.</td></tr>`;
     return;
   }
 
-  taskTableBody.innerHTML = filtered
-    .map((task) => {
-      const statusOptions = STATUS_OPTIONS.map(
-        (status) =>
-          `<option value="${escapeHtml(status)}" ${task.status === status ? "selected" : ""}>${escapeHtml(status)}</option>`
-      ).join("");
-
-      return `
-        <tr>
-          <td>${escapeHtml(task.brandName || "")}</td>
-          <td>${escapeHtml(task.username || "")}</td>
-          <td>${escapeHtml(task.email || "")}</td>
-          <td>${escapeHtml(task.regTime || "")}</td>
-          <td>${escapeHtml(task.phone || "")}</td>
-          <td>
-            <select class="status-select" data-task-id="${escapeHtml(task.id)}">
-              ${statusOptions}
-            </select>
-          </td>
-          <td>
-            <textarea class="remark-input" data-task-id="${escapeHtml(task.id)}" placeholder="Enter note...">${escapeHtml(task.remark || "")}</textarea>
-          </td>
-          <td>
-            <button class="save-btn" onclick="saveTask('${escapeJs(task.id)}', this)">Save</button>
-          </td>
-        </tr>
-      `;
-    })
-    .join("");
+  taskTableBody.innerHTML = filtered.map(task => `
+    <tr>
+      <td>${escapeHtml(task.brandName || "")}</td>
+      <td>${escapeHtml(task.username || "")}</td>
+      <td>${escapeHtml(task.email || "")}</td>
+      <td>${escapeHtml(task.regTime || "")}</td>
+      <td>${escapeHtml(task.phone || "")}</td>
+      <td>
+        <select class="status-select" data-task-id="${task.id}">
+          ${STATUS_OPTIONS.map(s =>
+            `<option ${task.status === s ? "selected" : ""}>${s}</option>`
+          ).join("")}
+        </select>
+      </td>
+      <td>
+        <textarea class="remark-input" data-task-id="${task.id}">${task.remark || ""}</textarea>
+      </td>
+      <td>
+        <button class="save-btn" onclick="saveTask('${task.id}', this)">Save</button>
+      </td>
+    </tr>
+  `).join("");
 }
 
 async function saveTask(taskId, btn) {
