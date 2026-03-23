@@ -560,6 +560,9 @@ function renderTasks() {
   const q = searchInput.value.trim().toLowerCase();
   const filterStatus = statusFilter.value;
 
+  const pendingCount = currentTasks.filter((task) => String(task.status || "").trim() === "Pending").length;
+  taskCount.textContent = `${pendingCount} Tasks`;
+
   const filtered = currentTasks.filter((task) => {
     return (
       (!q ||
@@ -570,9 +573,6 @@ function renderTasks() {
       (!filterStatus || task.status === filterStatus)
     );
   });
-
-  // ✅ FIX: correct count (no fake big numbers)
-  taskCount.textContent = `${filtered.length} Tasks`;
 
   if (!filtered.length) {
     taskTableBody.innerHTML = `<tr><td colspan="8" class="empty-cell">No tasks found.</td></tr>`;
@@ -630,6 +630,7 @@ async function saveTask(taskId, btn) {
         task.status = status;
         task.remark = remark;
       }
+      renderTasks();
       setMessage(staffMsg, "Task updated successfully.", "success");
     } else {
       setMessage(staffMsg, res.error || "Update failed.", "error");
