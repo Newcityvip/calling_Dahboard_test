@@ -25,7 +25,7 @@
         <div class="form-grid single">
           <div class="field">
             <label for="staffCode">Staff Code</label>
-            <input type="text" id="staffCode" placeholder="" autocomplete="off" />
+            <input type="text" id="staffCode" placeholder="Example: AKM01 or ADMIN01" />
           </div>
         </div>
 
@@ -53,19 +53,9 @@
               </div>
 
               <div class="field">
-                <label for="brandName">Brand Name</label>
-                <input type="text" id="brandName" list="brandOptions" placeholder="Select or type brand name" />
-                <datalist id="brandOptions">
-                  <option value="B1"></option>
-                  <option value="B2"></option>
-                  <option value="B3"></option>
-                  <option value="B4"></option>
-                  <option value="B5"></option>
-                  <option value="M1"></option>
-                  <option value="M2"></option>
-                  <option value="J1"></option>
-                  <option value="T1"></option>
-                </datalist>
+                <label for="targetStaffSelect">Target Staff (optional)</label>
+                <select id="targetStaffSelect" multiple size="6"></select>
+                <small class="muted small-note">Leave unselected to distribute equally to the full selected team.</small>
               </div>
 
               <div class="field">
@@ -104,51 +94,6 @@
           </div>
         </div>
 
-        <!-- LIVE REPORT -->
-        <div class="card">
-          <div class="report-head">
-            <div>
-              <h2>Live Calling Report</h2>
-              <p class="muted">Overall live progress across all assigned calls.</p>
-            </div>
-            <button id="refreshSummaryBtn" class="btn btn-outline">Refresh Report</button>
-          </div>
-
-          <div class="summary-grid" id="summaryGrid">
-            <div class="summary-box"><span>Total</span><strong id="sumTotal">0</strong></div>
-            <div class="summary-box"><span>Pending</span><strong id="sumPending">0</strong></div>
-            <div class="summary-box"><span>Completed</span><strong id="sumCompleted">0</strong></div>
-            <div class="summary-box"><span>Updated</span><strong id="sumUpdated">0</strong></div>
-            <div class="summary-box"><span>No Answer</span><strong id="sumNoAnswer">0</strong></div>
-            <div class="summary-box"><span>Not Reachable</span><strong id="sumNotReachable">0</strong></div>
-            <div class="summary-box"><span>Call Back Later</span><strong id="sumCallBackLater">0</strong></div>
-            <div class="summary-box"><span>Wrong Number</span><strong id="sumWrongNumber">0</strong></div>
-            <div class="summary-box"><span>Interested</span><strong id="sumInterested">0</strong></div>
-            <div class="summary-box"><span>Not Interested</span><strong id="sumNotInterested">0</strong></div>
-          </div>
-
-          <div class="grid two-col chart-grid">
-            <div class="card inner-card">
-              <h3>Status Chart</h3>
-              <canvas id="statusChart"></canvas>
-            </div>
-
-            <div class="card inner-card">
-              <h3>Staff Progress</h3>
-              <canvas id="staffChart"></canvas>
-            </div>
-          </div>
-
-          <div class="card inner-card staff-progress-card">
-            <h3>Staff Completion Percentage</h3>
-            <div id="staffPercentGrid" class="percent-grid">
-              <div class="empty-percent">No data yet.</div>
-            </div>
-          </div>
-
-          <div id="summaryMsg" class="message"></div>
-        </div>
-
         <div class="grid two-col">
           <div class="card">
             <h2>Quick Export</h2>
@@ -160,26 +105,6 @@
           </div>
 
           <div class="card">
-            <h2>Clear Wrong Batch</h2>
-            <p class="muted">If you distributed the wrong file to the wrong team, enter the Batch ID and clear it.</p>
-
-            <div class="form-grid single">
-              <div class="field">
-                <label for="clearBatchId">Batch ID</label>
-                <input type="text" id="clearBatchId" placeholder="Paste batch ID here" />
-              </div>
-            </div>
-
-            <div class="actions">
-              <button id="clearBatchBtn" class="btn btn-danger">Clear This Batch</button>
-            </div>
-
-            <div id="clearMsg" class="message"></div>
-          </div>
-        </div>
-
-        <div class="grid two-col">
-          <div class="card">
             <h2>Upload Rules</h2>
             <ul class="clean-list">
               <li>Only these columns are used: Affiliate Username, Email, Registration Time, Phone Number</li>
@@ -187,11 +112,6 @@
               <li>Duplicates are removed only inside the uploaded file</li>
               <li>Records are distributed equally to selected group staff</li>
             </ul>
-          </div>
-
-          <div class="card">
-            <h2>Batch Tip</h2>
-            <p class="muted">After every successful upload, the Batch ID will be shown. Keep that ID if you ever need to reverse that upload.</p>
           </div>
         </div>
       </section>
@@ -212,7 +132,7 @@
           </div>
 
           <div class="toolbar">
-            <input type="text" id="searchInput" placeholder="Search by username, email, phone, brand..." />
+            <input type="text" id="searchInput" placeholder="Search by username, email, phone..." />
             <select id="statusFilter">
               <option value="">All Status</option>
               <option value="Pending">Pending</option>
@@ -231,7 +151,6 @@
             <table id="taskTable">
               <thead>
                 <tr>
-                  <th>Brand</th>
                   <th>Affiliate Username</th>
                   <th>Email</th>
                   <th>Registration Time</th>
@@ -243,7 +162,7 @@
               </thead>
               <tbody id="taskTableBody">
                 <tr>
-                  <td colspan="8" class="empty-cell">No tasks loaded yet.</td>
+                  <td colspan="7" class="empty-cell">No tasks loaded yet.</td>
                 </tr>
               </tbody>
             </table>
@@ -252,42 +171,10 @@
           <div id="staffMsg" class="message"></div>
         </div>
       </section>
-    
-
-      <div id="emailModal" class="modal hidden">
-        <div class="modal-backdrop" id="emailModalBackdrop"></div>
-        <div class="modal-card">
-          <div class="modal-head">
-            <h3>Send Email</h3>
-            <button type="button" id="closeEmailModalBtn" class="modal-close">×</button>
-          </div>
-          <div class="form-grid single">
-            <div class="field">
-              <label for="emailTo">Receiver Email</label>
-              <input type="text" id="emailTo" />
-            </div>
-            <div class="field">
-              <label for="emailSubject">Subject</label>
-              <input type="text" id="emailSubject" readonly />
-            </div>
-            <div class="field">
-              <label for="emailBody">Message Body</label>
-              <textarea id="emailBody" placeholder="Paste message here..."></textarea>
-            </div>
-          </div>
-          <div class="actions">
-            <button type="button" id="sendEmailBtn" class="btn btn-primary">Send Email</button>
-            <button type="button" id="cancelEmailBtn" class="btn btn-outline">Cancel</button>
-          </div>
-          <div id="emailMsg" class="message"></div>
-        </div>
-      </div>
-
     </main>
   </div>
 
   <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
