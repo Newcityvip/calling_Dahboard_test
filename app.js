@@ -85,6 +85,17 @@ refreshTasksBtn.addEventListener("click", loadStaffTasks);
 searchInput.addEventListener("input", renderTasks);
 statusFilter.addEventListener("change", renderTasks);
 
+if (closeEmailModalBtn) closeEmailModalBtn.addEventListener("click", closeEmailModal);
+if (cancelEmailBtn) cancelEmailBtn.addEventListener("click", closeEmailModal);
+if (emailModalBackdrop) emailModalBackdrop.addEventListener("click", closeEmailModal);
+if (sendEmailBtn) sendEmailBtn.addEventListener("click", handleSendEmail);
+
+window.addEventListener("keydown", function (e) {
+  if (e.key === "Escape" && emailModal && !emailModal.classList.contains("hidden")) {
+    closeEmailModal();
+  }
+});
+
 staffCodeInput.addEventListener("keypress", function (e) {
   if (e.key === "Enter") handleLogin();
 });
@@ -482,23 +493,14 @@ function getBrandFollowUpSubject(brandCode) {
   return brandMap[code] || `${String(brandCode || "").trim()} অ্যাফিলিয়েট কল ফলো-আপ ইমেইল`;
 }
 
-function openEmailModal(taskId) {
-  const task = currentTasks.find(t => t.id === taskId);
-  if (!task) {
-    setMessage(staffMsg, "Task not found for email sending.", "error");
-    return;
-  }
-  if (!String(task.email || "").trim()) {
-    setMessage(staffMsg, "This user does not have an email address.", "error");
-    return;
-  }
-
+function openEmailModal(taskId, email, brandName) {
   activeEmailTaskId = taskId;
-  emailToInput.value = String(task.email || "").trim();
-  emailSubjectInput.value = getBrandFollowUpSubject(task.brandName || "");
+  emailToInput.value = String(email || "").trim();
+  emailSubjectInput.value = getBrandFollowUpSubject(brandName || "");
   emailBodyInput.value = "";
   setMessage(emailMsg, "", "info");
   emailModal.classList.remove("hidden");
+  emailToInput.focus();
 }
 
 function closeEmailModal() {
@@ -690,7 +692,7 @@ function renderTasks() {
           <td>
             <div class="row-action-stack">
               <button class="save-btn" onclick="saveTask('${escapeJs(task.id)}', this)">Save</button>
-              <button class="email-btn" onclick="openEmailModal('${escapeJs(task.id)}')">Send Email</button>
+              <button class="email-btn" onclick="openEmailModal('${escapeJs(task.id)}', '${escapeJs(task.email || '')}', '${escapeJs(task.brandName || '')}')">Send Email</button>
             </div>
           </td>
         </tr>
