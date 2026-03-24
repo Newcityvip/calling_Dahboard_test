@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbyBdtI6VnZmsLfo9KT0QfmEuMWREhlKkvZJXl8vyVdXhqxcWqtEUgLKV8SOrev1s3xgXA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycby44GJ0atu1KpcaaVma2FoN0ttxhDGFulV69CULWbMBNIz5k1FYHTpn2VGqb88nr-Mm-Q/exec";
 
 const STATUS_OPTIONS = [
   "Pending",
@@ -62,18 +62,18 @@ const searchInput = document.getElementById("searchInput");
 const statusFilter = document.getElementById("statusFilter");
 const refreshTasksBtn = document.getElementById("refreshTasksBtn");
 
+
 const emailModal = document.getElementById("emailModal");
 const emailModalBackdrop = document.getElementById("emailModalBackdrop");
 const closeEmailModalBtn = document.getElementById("closeEmailModalBtn");
-const cancelEmailModalBtn = document.getElementById("cancelEmailModalBtn");
-const openDraftBtn = document.getElementById("openDraftBtn");
-const emailBrandLabel = document.getElementById("emailBrandLabel");
-const emailToLabel = document.getElementById("emailToLabel");
-const emailSubjectInput = document.getElementById("emailSubjectInput");
-const emailBodyInput = document.getElementById("emailBodyInput");
-const emailDraftMsg = document.getElementById("emailDraftMsg");
+const cancelEmailBtn = document.getElementById("cancelEmailBtn");
+const sendEmailBtn = document.getElementById("sendEmailBtn");
+const emailToInput = document.getElementById("emailTo");
+const emailSubjectInput = document.getElementById("emailSubject");
+const emailBodyInput = document.getElementById("emailBody");
+const emailMsg = document.getElementById("emailMsg");
 
-let activeEmailTask = null;
+let activeEmailTaskId = null;
 
 loginBtn.addEventListener("click", handleLogin);
 logoutBtn.addEventListener("click", logout);
@@ -84,11 +84,6 @@ refreshSummaryBtn.addEventListener("click", loadAdminSummary);
 refreshTasksBtn.addEventListener("click", loadStaffTasks);
 searchInput.addEventListener("input", renderTasks);
 statusFilter.addEventListener("change", renderTasks);
-
-openDraftBtn.addEventListener("click", handleOpenDraft);
-closeEmailModalBtn.addEventListener("click", closeEmailModal);
-cancelEmailModalBtn.addEventListener("click", closeEmailModal);
-emailModalBackdrop.addEventListener("click", closeEmailModal);
 
 staffCodeInput.addEventListener("keypress", function (e) {
   if (e.key === "Enter") handleLogin();
@@ -154,8 +149,6 @@ function logout() {
   excelFileInput.value = "";
   brandNameInput.value = "";
   staffPercentGrid.innerHTML = `<div class="empty-percent">No data yet.</div>`;
-  activeEmailTask = null;
-  closeEmailModal(true);
 
   if (statusChart) {
     statusChart.destroy();
@@ -165,6 +158,8 @@ function logout() {
     staffChart.destroy();
     staffChart = null;
   }
+
+  closeEmailModal();
 }
 
 async function handleLogin() {
@@ -469,6 +464,94 @@ function renderStaffPercentCards(staffBreakdown) {
     .join("");
 }
 
+
+function getBrandFollowUpSubject(brandCode) {
+  const brandMap = {
+    M1: "মেগা ক্যাসিনো ওয়ার্ল্ড অ্যাফিলিয়েট কল ফলো-আপ ইমেইল",
+    M2: "মেগা ক্রিকেট ওয়ার্ল্ড অ্যাফিলিয়েট কল ফলো-আপ ইমেইল",
+    B1: "বাংলাবেট অ্যাফিলিয়েট কল ফলো-আপ ইমেইল",
+    B2: "বেঙ্গলবেট অ্যাফিলিয়েট কল ফলো-আপ ইমেইল",
+    B3: "দেশি স্লটস অ্যাফিলিয়েট কল ফলো-আপ ইমেইল",
+    B4: "বাংলাউইন অ্যাফিলিয়েট কল ফলো-আপ ইমেইল",
+    B5: "বাংলাপ্লাস অ্যাফিলিয়েট কল ফলো-আপ ইমেইল",
+    K1: "খেলাঘর অ্যাফিলিয়েট কল ফলো-আপ ইমেইল",
+    TK: "টিকেবাজি অ্যাফিলিয়েট কল ফলো-আপ ইমেইল",
+    JW: "জয়উইন৮৮ অ্যাফিলিয়েট কল ফলো-আপ ইমেইল"
+  };
+  const code = String(brandCode || "").trim().toUpperCase();
+  return brandMap[code] || `${String(brandCode || "").trim()} অ্যাফিলিয়েট কল ফলো-আপ ইমেইল`;
+}
+
+function openEmailModal(taskId) {
+  const task = currentTasks.find(t => t.id === taskId);
+  if (!task) {
+    setMessage(staffMsg, "Task not found for email sending.", "error");
+    return;
+  }
+  if (!String(task.email || "").trim()) {
+    setMessage(staffMsg, "This user does not have an email address.", "error");
+    return;
+  }
+
+  activeEmailTaskId = taskId;
+  emailToInput.value = String(task.email || "").trim();
+  emailSubjectInput.value = getBrandFollowUpSubject(task.brandName || "");
+  emailBodyInput.value = "";
+  setMessage(emailMsg, "", "info");
+  emailModal.classList.remove("hidden");
+}
+
+function closeEmailModal() {
+  activeEmailTaskId = null;
+  if (emailToInput) emailToInput.value = "";
+  if (emailSubjectInput) emailSubjectInput.value = "";
+  if (emailBodyInput) emailBodyInput.value = "";
+  if (emailMsg) setMessage(emailMsg, "", "info");
+  if (emailModal) emailModal.classList.add("hidden");
+}
+
+async function handleSendEmail() {
+  if (!currentUser || !activeEmailTaskId) return;
+
+  const to = String(emailToInput.value || "").trim();
+  const subject = String(emailSubjectInput.value || "").trim();
+  const body = String(emailBodyInput.value || "").trim();
+
+  if (!to) {
+    setMessage(emailMsg, "Receiver email is missing.", "error");
+    return;
+  }
+  if (!body) {
+    setMessage(emailMsg, "Please paste or write the message body.", "error");
+    return;
+  }
+
+  sendEmailBtn.disabled = true;
+  setMessage(emailMsg, "Sending email...", "info");
+
+  try {
+    const res = await postData({
+      action: "sendFollowUpEmail",
+      code: currentUser.code,
+      to,
+      subject,
+      body
+    });
+
+    if (res.success) {
+      setMessage(emailMsg, "Email sent successfully.", "success");
+      setTimeout(() => closeEmailModal(), 800);
+    } else {
+      setMessage(emailMsg, res.error || "Email sending failed.", "error");
+    }
+  } catch (err) {
+    console.error("Send email error:", err);
+    setMessage(emailMsg, `Email sending failed: ${err.message}`, "error");
+  } finally {
+    sendEmailBtn.disabled = false;
+  }
+}
+
 function readExcelFile(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -605,9 +688,9 @@ function renderTasks() {
             <textarea class="remark-input" data-task-id="${escapeHtml(task.id)}" placeholder="Enter note...">${escapeHtml(task.remark || "")}</textarea>
           </td>
           <td>
-            <div class="action-stack">
+            <div class="row-action-stack">
               <button class="save-btn" onclick="saveTask('${escapeJs(task.id)}', this)">Save</button>
-              <button class="draft-btn" onclick="openEmailModal('${escapeJs(task.id)}')" ${task.email ? "" : "disabled"}>Draft Email</button>
+              <button class="email-btn" onclick="openEmailModal('${escapeJs(task.id)}')">Send Email</button>
             </div>
           </td>
         </tr>
@@ -643,7 +726,6 @@ async function saveTask(taskId, btn) {
         task.status = status;
         task.remark = remark;
       }
-      renderTasks();
       setMessage(staffMsg, "Task updated successfully.", "success");
     } else {
       setMessage(staffMsg, res.error || "Update failed.", "error");
@@ -654,67 +736,6 @@ async function saveTask(taskId, btn) {
   } finally {
     if (btn) btn.disabled = false;
   }
-}
-
-
-function openEmailModal(taskId) {
-  const task = currentTasks.find((t) => t.id === taskId);
-  if (!task) return;
-
-  if (!task.email) {
-    setMessage(staffMsg, "No email found for this user.", "error");
-    return;
-  }
-
-  activeEmailTask = task;
-  emailBrandLabel.textContent = task.brandName || "-";
-  emailToLabel.textContent = task.email || "-";
-  emailSubjectInput.value = `[${task.brandName || "Brand"}] Follow-up`;
-  emailBodyInput.value = "";
-  setMessage(emailDraftMsg, "", "info");
-  emailModal.classList.remove("hidden");
-  emailBodyInput.focus();
-}
-
-function closeEmailModal(silent = false) {
-  if (!silent && emailModal.classList.contains("hidden")) return;
-  emailModal.classList.add("hidden");
-  emailBrandLabel.textContent = "-";
-  emailToLabel.textContent = "-";
-  emailSubjectInput.value = "";
-  emailBodyInput.value = "";
-  activeEmailTask = null;
-  setMessage(emailDraftMsg, "", "info");
-}
-
-function handleOpenDraft() {
-  if (!activeEmailTask) {
-    setMessage(emailDraftMsg, "No task selected.", "error");
-    return;
-  }
-
-  const to = String(activeEmailTask.email || "").trim();
-  const subject = String(emailSubjectInput.value || "").trim();
-  const body = String(emailBodyInput.value || "").trim();
-
-  if (!to) {
-    setMessage(emailDraftMsg, "This row has no email address.", "error");
-    return;
-  }
-
-  if (!body) {
-    setMessage(emailDraftMsg, "Please paste or write the email message first.", "error");
-    return;
-  }
-
-  const gmailUrl =
-    "https://mail.google.com/mail/?view=cm&fs=1" +
-    `&to=${encodeURIComponent(to)}` +
-    `&su=${encodeURIComponent(subject)}` +
-    `&body=${encodeURIComponent(body)}`;
-
-  window.open(gmailUrl, "_blank", "noopener,noreferrer");
-  setMessage(emailDraftMsg, "Draft opened in a new Gmail window.", "success");
 }
 
 async function handleExport() {
