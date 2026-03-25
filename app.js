@@ -576,7 +576,7 @@ function open247EmailFlow(taskId) {
     return;
   }
 
-  const url = `https://run.247cs.live/run/69c36543a348cc04446b7958?brand=${encodeURIComponent(brandCode.toLowerCase())}&Username=${encodeURIComponent(username)}&Email=${encodeURIComponent(email)}`;
+  const url = `https://run.247cs.live/run/69c36543a348cc04446b7958?brand=${encodeURIComponent(brandCode.toLowerCase())}&Username=${encodeURIComponent(username)}&Email=${email}`;
   window.open(url, "_blank", "noopener,noreferrer");
   setMessage(staffMsg, `247 email flow opened for ${username} (${brandCode}) - ${email}.`, "success");
 }
