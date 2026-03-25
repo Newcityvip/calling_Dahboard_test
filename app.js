@@ -88,16 +88,6 @@ searchInput.addEventListener("input", renderTasks);
 statusFilter.addEventListener("change", renderTasks);
 if (teamGroupSelect) teamGroupSelect.addEventListener("change", loadStaffOptions);
 
-if (closeEmailModalBtn) closeEmailModalBtn.addEventListener("click", closeEmailModal);
-if (cancelEmailBtn) cancelEmailBtn.addEventListener("click", closeEmailModal);
-if (emailModalBackdrop) emailModalBackdrop.addEventListener("click", closeEmailModal);
-if (sendEmailBtn) sendEmailBtn.addEventListener("click", handleSendEmail);
-
-window.addEventListener("keydown", function (e) {
-  if (e.key === "Escape" && emailModal && !emailModal.classList.contains("hidden")) {
-    closeEmailModal();
-  }
-});
 
 staffCodeInput.addEventListener("keypress", function (e) {
   if (e.key === "Enter") handleLogin();
@@ -523,31 +513,66 @@ function renderStaffPercentCards(staffBreakdown) {
 }
 
 
-function getBrandFollowUpSubject(brandCode) {
-  const brandMap = {
-    M1: "মেগা ক্যাসিনো ওয়ার্ল্ড অ্যাফিলিয়েট কল ফলো-আপ ইমেইল",
-    M2: "মেগা ক্রিকেট ওয়ার্ল্ড অ্যাফিলিয়েট কল ফলো-আপ ইমেইল",
-    B1: "বাংলাবেট অ্যাফিলিয়েট কল ফলো-আপ ইমেইল",
-    B2: "বেঙ্গলবেট অ্যাফিলিয়েট কল ফলো-আপ ইমেইল",
-    B3: "দেশি স্লটস অ্যাফিলিয়েট কল ফলো-আপ ইমেইল",
-    B4: "বাংলাউইন অ্যাফিলিয়েট কল ফলো-আপ ইমেইল",
-    B5: "বাংলাপ্লাস অ্যাফিলিয়েট কল ফলো-আপ ইমেইল",
-    K1: "খেলাঘর অ্যাফিলিয়েট কল ফলো-আপ ইমেইল",
-    TK: "টিকেবাজি অ্যাফিলিয়েট কল ফলো-আপ ইমেইল",
-    JW: "জয়উইন৮৮ অ্যাফিলিয়েট কল ফলো-আপ ইমেইল"
+function getFinalBrandCode(brandValue) {
+  const raw = String(brandValue || "").trim();
+  const upper = raw.toUpperCase();
+
+  const exactMap = {
+    M1: "M1",
+    M2: "M2",
+    B1: "B1",
+    B2: "B2",
+    B3: "B3",
+    B4: "B4",
+    B5: "B5",
+    K1: "K1",
+    TK: "TK",
+    JW: "JW",
+    J1: "JW",
+    T1: "TK"
   };
-  const code = String(brandCode || "").trim().toUpperCase();
-  return brandMap[code] || `${String(brandCode || "").trim()} অ্যাফিলিয়েট কল ফলো-আপ ইমেইল`;
+
+  if (exactMap[upper]) return exactMap[upper];
+
+  const normalized = upper.replace(/[^A-Z0-9]+/g, " ").trim();
+
+  if (normalized.includes("MEGA CASINO WORLD")) return "M1";
+  if (normalized.includes("MEGA CRICKET WORLD")) return "M2";
+  if (normalized.includes("BANGLABET")) return "B1";
+  if (normalized.includes("BENGALBET")) return "B2";
+  if (normalized.includes("DESHISLOTS") || normalized.includes("DESHI SLOTS")) return "B3";
+  if (normalized.includes("BANGLAWIN")) return "B4";
+  if (normalized.includes("BANGLAPLUS")) return "B5";
+  if (normalized.includes("KHELAGHOR")) return "K1";
+  if (normalized.includes("TKBAAZI") || normalized.includes("TK BAAZI")) return "TK";
+  if (normalized.includes("JOYWIN88") || normalized.includes("JOY WIN 88")) return "JW";
+
+  return upper;
 }
 
-function openEmailModal(taskId, email, brandName) {
-  activeEmailTaskId = taskId;
-  emailToInput.value = String(email || "").trim();
-  emailSubjectInput.value = getBrandFollowUpSubject(brandName || "");
-  emailBodyInput.value = "";
-  setMessage(emailMsg, "", "info");
-  emailModal.classList.remove("hidden");
-  emailToInput.focus();
+function open247EmailFlow(taskId) {
+  const task = currentTasks.find((t) => String(t.id || "") === String(taskId || ""));
+  if (!task) {
+    setMessage(staffMsg, "Task not found for 247 email flow.", "error");
+    return;
+  }
+
+  const brandCode = getFinalBrandCode(task.brandName || "");
+  const username = String(task.username || "").trim();
+
+  if (!brandCode) {
+    setMessage(staffMsg, "Brand code is missing for this task.", "error");
+    return;
+  }
+
+  if (!username) {
+    setMessage(staffMsg, "Affiliate username is missing for this task.", "error");
+    return;
+  }
+
+  const url = `https://run.247cs.live/run/69c36543a348cc04446b7958?brand=${encodeURIComponent(brandCode.toLowerCase())}&Username=${encodeURIComponent(username)}`;
+  window.open(url, "_blank", "noopener,noreferrer");
+  setMessage(staffMsg, `247 email flow opened for ${username} (${brandCode}).`, "success");
 }
 
 function closeEmailModal() {
@@ -557,48 +582,6 @@ function closeEmailModal() {
   if (emailBodyInput) emailBodyInput.value = "";
   if (emailMsg) setMessage(emailMsg, "", "info");
   if (emailModal) emailModal.classList.add("hidden");
-}
-
-async function handleSendEmail() {
-  if (!currentUser || !activeEmailTaskId) return;
-
-  const to = String(emailToInput.value || "").trim();
-  const subject = String(emailSubjectInput.value || "").trim();
-  const body = String(emailBodyInput.value || "").trim();
-
-  if (!to) {
-    setMessage(emailMsg, "Receiver email is missing.", "error");
-    return;
-  }
-  if (!body) {
-    setMessage(emailMsg, "Please paste or write the message body.", "error");
-    return;
-  }
-
-  sendEmailBtn.disabled = true;
-  setMessage(emailMsg, "Sending email...", "info");
-
-  try {
-    const res = await postData({
-      action: "sendFollowUpEmail",
-      code: currentUser.code,
-      to,
-      subject,
-      body
-    });
-
-    if (res.success) {
-      setMessage(emailMsg, "Email sent successfully.", "success");
-      setTimeout(() => closeEmailModal(), 800);
-    } else {
-      setMessage(emailMsg, res.error || "Email sending failed.", "error");
-    }
-  } catch (err) {
-    console.error("Send email error:", err);
-    setMessage(emailMsg, `Email sending failed: ${err.message}`, "error");
-  } finally {
-    sendEmailBtn.disabled = false;
-  }
 }
 
 function readExcelFile(file) {
@@ -739,7 +722,7 @@ function renderTasks() {
           <td>
             <div class="row-action-stack">
               <button class="save-btn" onclick="saveTask('${escapeJs(task.id)}', this)">Save</button>
-              <button class="email-btn" onclick="openEmailModal('${escapeJs(task.id)}', '${escapeJs(task.email || '')}', '${escapeJs(task.brandName || '')}')">Send Email</button>
+              <button class="email-btn" onclick="open247EmailFlow('${escapeJs(task.id)}')">Send Email</button>
             </div>
           </td>
         </tr>
