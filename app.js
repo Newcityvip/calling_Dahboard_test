@@ -559,6 +559,7 @@ function open247EmailFlow(taskId) {
 
   const brandCode = getFinalBrandCode(task.brandName || "");
   const username = String(task.username || "").trim();
+  const email = String(task.email || "").trim();
 
   if (!brandCode) {
     setMessage(staffMsg, "Brand code is missing for this task.", "error");
@@ -570,9 +571,14 @@ function open247EmailFlow(taskId) {
     return;
   }
 
-  const url = `https://run.247cs.live/run/69c36543a348cc04446b7958?brand=${encodeURIComponent(brandCode.toLowerCase())}&Username=${encodeURIComponent(username)}`;
+  if (!email) {
+    setMessage(staffMsg, "Email is missing for this task.", "error");
+    return;
+  }
+
+  const url = `https://run.247cs.live/run/69c36543a348cc04446b7958?brand=${encodeURIComponent(brandCode.toLowerCase())}&Username=${encodeURIComponent(username)}&Email=${encodeURIComponent(email)}`;
   window.open(url, "_blank", "noopener,noreferrer");
-  setMessage(staffMsg, `247 email flow opened for ${username} (${brandCode}).`, "success");
+  setMessage(staffMsg, `247 email flow opened for ${username} (${brandCode}) - ${email}.`, "success");
 }
 
 function closeEmailModal() {
